@@ -9,4 +9,8 @@ export class Deferred {
   resolve (value) {
     this.resolve_.call(this.promise, value);
   }
+
+  reject (reason) {
+    this.reject_.call(this.promise, reason);
+  }
 }
