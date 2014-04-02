@@ -1,12 +1,12 @@
 export class Deferred {
   constructor () {
-    var self = this;
-    console.log('Promise', Promise);
     this.promise = new Promise(function(resolve, reject) {
-      self.resolve = function (value) {
-        resolve.call(this, value);
-      };
-      self.reject = reject;
-    });
+      this.resolve_ = resolve;
+      this.reject_ = reject;
+    }.bind(this));
+  }
+
+  resolve (value) {
+    this.resolve_.call(this.promise, value);
   }
 }

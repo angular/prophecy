@@ -18,18 +18,20 @@ describe('Deferred', function() {
       Promise = function (resolver) {
         resolver.call(this, mockResolve, mockReject);
       };
+      Promise.prototype.then = jasmine.createSpy();
     });
 
     afterEach(function() {
       Promise = RealPromise;
     });
 
-    it('should call the resolver\'s resolve function with the correct value',
-        function() {
-          var deferred = new Deferred();
-          deferred.resolve('value');
-          expect(mockResolve).toHaveBeenCalledWith('value');
-        });
-  })
+    it('should call the resolver\'s resolve function with the correct value \
+      and context', function() {
+      var deferred = new Deferred();
+      deferred.resolve('value');
+      expect(mockResolve).toHaveBeenCalledWith('value');
+      expect(mockResolve.calls.all()[0].object).toBePromiseLike();
+    });
+  });
 
 });
