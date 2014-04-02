@@ -21,7 +21,7 @@ require.config({
   },
 
   // Dynamically load all test files and ES6 polyfill.
-  deps: allTestFiles.concat(['node_modules/es6-shim/es6-shim', 'test/matchers']),
+  deps: allTestFiles.concat(['test/matchers']),
 
   // we have to kickoff jasmine, as it is asynchronous
   callback: window.__karma__.start

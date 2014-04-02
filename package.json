@@ -1,9 +1,8 @@
 {
-  "name": "di",
+  "name": "Deferred",
   "version": "2.0.0",
   "description": "Angular 2 Promises.",
-  "main": "node/index.js",
-  "homepage": "https://github.com/angular",
+  "homepage": "https://github.com/angular/deferred",
   "dependencies": {
 
   },

@@ -1,17 +1,11 @@
 import {Deferred} from '../src/ngDeferred';
+import {MockPromise} from './MockPromise';
 
 describe('Deferred', function() {
-  var RealPromise = Promise,
-      mockResolve,
-      mockReject;
+  var RealPromise = Promise;
 
   function mockGlobalPromise() {
-    mockResolve = jasmine.createSpy();
-    mockReject = jasmine.createSpy();
-    Promise = function (resolver) {
-      resolver.call(this, mockResolve, mockReject);
-    };
-    Promise.prototype.then = jasmine.createSpy();
+    Promise = MockPromise
   }
 
   function restoreGlobalPromise() {
@@ -30,10 +24,11 @@ describe('Deferred', function() {
 
     it('should call the resolver\'s resolve function with the correct value \
       and context', function() {
+      var spy = spyOn(Promise.prototype, 'internalResolve_');
       var deferred = new Deferred();
       deferred.resolve('value');
-      expect(mockResolve).toHaveBeenCalledWith('value');
-      expect(mockResolve.calls.all()[0].object).toBePromiseLike();
+      expect(spy).toHaveBeenCalledWith('value');
+      expect(spy.calls.all()[0].object).toBePromiseLike();
     });
   });
 
@@ -44,10 +39,12 @@ describe('Deferred', function() {
 
     it('should call the resolver\'s reject function with the correct value \
       and context', function() {
+      var spy = spyOn(Promise.prototype, 'internalReject_');
       var deferred = new Deferred();
+
       deferred.reject('reason');
-      expect(mockReject).toHaveBeenCalledWith('reason');
-      expect(mockReject.calls.all()[0].object).toBePromiseLike();
+      expect(spy).toHaveBeenCalledWith('reason');
+      expect(spy.calls.all()[0].object).toBePromiseLike();
     });
   });
 });
