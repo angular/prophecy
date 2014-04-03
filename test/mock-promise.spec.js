@@ -1,4 +1,4 @@
-import {MockPromise} from './MockPromise';
+import {MockPromise, MockFulfillment} from './MockPromise';
 
 describe('MockPromise', function() {
   var noop = function () {};
@@ -34,5 +34,62 @@ describe('MockPromise', function() {
           expect(typeof args[1]).toBe('function');
           expect(args[1].toString()).toContain('(reason)');
         });
+  });
+
+
+  describe('.internalResolve_()', function() {
+    var promise;
+    beforeEach(function() {
+      promise = new MockPromise(noop);
+    });
+
+    afterEach(function () {
+      delete MockPromise.queue;
+    });
+
+    it('should add an item to the queue when resolving', function() {
+      promise.internalResolve_('success');
+      expect(MockPromise.queue.length).toBe(1);
+      expect(MockPromise.queue[0]).toEqual(
+          new MockFulfillment('resolve', 'success', promise));
+    });
+  });
+
+
+  describe('.internalReject_()', function() {
+    var promise;
+    beforeEach(function() {
+      promise = new MockPromise(noop);
+    });
+
+    afterEach(function () {
+      delete MockPromise.queue;
+    });
+
+    it('should add an item to the queue when resolving', function() {
+      promise.internalReject_('failure');
+      expect(MockPromise.queue.length).toBe(1);
+      expect(MockPromise.queue[0]).toEqual(
+          new MockFulfillment('reject', 'failure', promise));
+    });
+  });
+
+
+  describe('.flush()', function() {
+    it('should execute every item in the queue in order', function() {
+      var executionOrder = [];
+      MockPromise.verifyNothingToFlush();
+      var promise1 = new MockPromise(noop).then(function(value) {
+        executionOrder.push(value);
+      });
+      var promise2 = new MockPromise(noop).then(null, function(reason) {
+        executionOrder.push(reason);
+      });
+      promise1.internalResolve_('success!');
+      promise2.internalReject_('failure!');
+
+      MockPromise.flush();
+      expect(executionOrder).toEqual(['success!', 'failure!']);
+    });
   });
 });
