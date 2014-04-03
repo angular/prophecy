@@ -14,7 +14,7 @@ export class MockFulfillment {
 export class MockPromise {
   constructor (resolver) {
     MockPromise.queue = MockPromise.queue || [];
-    resolver.call(this, this.internalResolve_, this.internalReject_);
+    resolver.call(this, this.internalResolve_.bind(this), this.internalReject_.bind(this));
   }
 
   then (success, failure) {
@@ -48,5 +48,23 @@ export class MockPromise {
     if (MockPromise.queue && MockPromise.queue.length) {
       throw new Error('There are resolutions waiting to be flushed!');
     }
+  }
+
+  static resolve (value) {
+    var p = new MockPromise(function(resolve){
+      resolve(value);
+    });
+    //Necessary for A+ compliance tests in order to not have to edit tests
+    setTimeout(MockPromise.flush, 0);
+    return p;
+  }
+
+  static reject (reason) {
+    var p = new MockPromise(function(resolve, reject) {
+      reject(reason);
+    });
+    //Necessary for A+ compliance tests in order to not have to edit tests
+    setTimeout(MockPromise.flush, 0);
+    return p;
   }
 }
