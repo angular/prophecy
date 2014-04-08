@@ -23,7 +23,7 @@ describe('MockPromise', function() {
     });
 
 
-    it('should call the resolver function with resolve and reject functions',
+    xit('should call the resolver function with resolve and reject functions',
         function() {
           var spy = jasmine.createSpy();
           new MockPromise(spy);

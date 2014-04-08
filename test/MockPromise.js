@@ -33,14 +33,57 @@ export class MockPromise {
 
   static flush () {
     MockPromise.queue.forEach(function(fulfillment) {
+      var oneReject;
       var fnIndex = fulfillment.resolution === 'resolve' ? 0 : 1;
       if (fulfillment.promise.internalChain_) {
-        fulfillment.promise.internalChain_.forEach(function(chain) {
-          chain[fnIndex].call(
-              fulfillment.promise,
+        var fulfillmentTuple = fulfillment.promise.internalChain_.shift();
+        if (Array.isArray(fulfillmentTuple)) {
+          evalChainItem(
+              fulfillmentTuple,
               fulfillment[fnIndex? 'reason' : 'value']);
-        });
+        }
       }
+
+      function evalChainItem (item, value) {
+          var nextValue = value;
+          if (oneReject && typeof item[1] === 'function') {
+            oneReject = false;
+            nextValue = callAndReturn(item[1]);
+          }
+          else if (typeof item[fnIndex] === 'function') {
+            nextValue = callAndReturn(item[fnIndex]);
+          }
+
+          if(nextValue && typeof nextValue.then === 'function') {
+            //do something fancy
+            //Should it be required to flush again since a new promise
+            //needs to be resolved?
+          }
+          else {
+            var fulfillmentTuple = fulfillment.promise.internalChain_.shift();
+
+            if (Array.isArray(fulfillmentTuple)) {
+              evalChainItem(
+                  fulfillmentTuple,
+                  fulfillment[fnIndex? 'reason' : 'value']);
+            }
+          }
+
+          function callAndReturn (fn) {
+            var retValue;
+            try {
+              retValue = fn.call(
+                undefined,
+                value) || value;
+            }
+            catch (e) {
+              oneReject = true;
+              retValue = e;
+            }
+
+            return retValue;
+          }
+        }
     });
   }
 
@@ -51,20 +94,14 @@ export class MockPromise {
   }
 
   static resolve (value) {
-    var p = new MockPromise(function(resolve){
+    return new MockPromise(function(resolve){
       resolve(value);
     });
-    //Necessary for A+ compliance tests in order to not have to edit tests
-    setTimeout(MockPromise.flush, 0);
-    return p;
   }
 
   static reject (reason) {
-    var p = new MockPromise(function(resolve, reject) {
+    return new MockPromise(function(resolve, reject) {
       reject(reason);
     });
-    //Necessary for A+ compliance tests in order to not have to edit tests
-    setTimeout(MockPromise.flush, 0);
-    return p;
   }
 }
