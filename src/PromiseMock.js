@@ -1,11 +1,3 @@
-import {Provide} from 'di/annotations';
-import {InjectablePromise} from './InjectablePromise';
-
-@Provide(InjectablePromise)
-export function PromiseMockInjectable () {
-  return PromiseMock;
-}
-
 export class PromiseBackend {
   constructor () {
   }
