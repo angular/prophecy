@@ -1,10 +1,11 @@
-import {PromiseBackend} from '../src/PromiseBackend';
-import {PromiseMock} from '../src/PromiseMock';
+import {PromiseMock, PromiseBackend} from '../src/PromiseMock';
 
-ddescribe('PromiseBackend', function() {
+describe('PromiseBackend', function() {
   afterEach(function() {
     PromiseBackend.restoreNativePromise();
     PromiseBackend.setGlobal(window);
+    PromiseBackend.verifyNoOutstandingTasks();
+    expect(Promise).not.toBe(PromiseMock);
   });
 
 
@@ -117,3 +118,26 @@ ddescribe('PromiseBackend', function() {
     });
   });
 });
+
+describe('PromiseMock', function() {
+  it('should construct', function() {
+    new PromiseMock(function(){});
+  });
+
+
+  it('should throw if no resolver is given', function() {
+    expect(function() {
+      new PromiseMock();
+    }).toThrow(new TypeError);
+  })
+
+  it('should allow synchronous flushing', function() {
+    var goodSpy = jasmine.createSpy();
+    new PromiseMock(function(res, rej) {
+      res('success!');
+    }).then(goodSpy);
+    PromiseBackend.flush();
+    expect(goodSpy).toHaveBeenCalledWith('success!');
+  });
+});
+
