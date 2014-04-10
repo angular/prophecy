@@ -1,36 +1,42 @@
 import {PromiseMock} from './PromiseMock';
 
 export class PromiseBackend {
-  constructor (global) {
-    this.queue = [];
-    this.global = global || window;
+  constructor () {
   }
 
-  flush() {
-    var i = this.queue.length, task;
+  static setGlobal(global) {
+    PromiseBackend.queue = [];
+    PromiseBackend.global = global || window;
+  }
+
+  static flush() {
+    var i = PromiseBackend.queue.length, task;
     if (!i) {
       throw new Error('Nothing to flush!');
     }
     while (i--) {
-      task = this.queue.shift();
+      task = PromiseBackend.queue.shift();
       task.call(null);
     }
   }
 
-  executeAsap(fn) {
-    this.queue.push(fn);
+  static executeAsap(fn) {
+    PromiseBackend.queue.push(fn);
   }
 
-  restoreNative() {
-    this.global.Promise = this.__OriginalPromise__ || this.global.Promise;
+  static restoreNativePromise() {
+    PromiseBackend.global.Promise = PromiseBackend.__OriginalPromise__ || PromiseBackend.global.Promise;
   }
 
-  patchWithMock() {
-    this.__OriginalPromise__ = this.global.Promise;
-    this.global.Promise = PromiseMock;
+  static patchWithMock() {
+    PromiseBackend.__OriginalPromise__ = PromiseBackend.global.Promise;
+    PromiseBackend.global.Promise = PromiseMock;
   }
 
-  verifyNoOutstandingTasks() {
-    if (this.queue.length) throw new Error('Pending tasks to be flushed');
+  static verifyNoOutstandingTasks() {
+    if (PromiseBackend.queue.length) throw new Error('Pending tasks to be flushed');
   }
 }
+
+PromiseBackend.global = window;
+PromiseBackend.queue = [];
