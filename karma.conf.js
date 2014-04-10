@@ -19,6 +19,4 @@ module.exports = function(config) {
       'test/**/*.js': ['traceur']
     }
   });
-
-  config.sauceLabs.testName = 'di.js';
 };

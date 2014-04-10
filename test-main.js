@@ -17,11 +17,12 @@ require.config({
   baseUrl: '/base',
 
   paths: {
-    'assert': './node_modules/pipe/node_modules/assert/dist/amd/assert'
+    'assert': './node_modules/pipe/node_modules/assert/dist/amd/assert',
+    'di': './node_modules/di/src'
   },
 
   // Dynamically load all test files and ES6 polyfill.
-  deps: allTestFiles.concat(['test/matchers']),
+  deps: allTestFiles.concat(['node_modules/di/node_modules/es6-shim/es6-shim', 'test/matchers']),
 
   // we have to kickoff jasmine, as it is asynchronous
   callback: window.__karma__.start
