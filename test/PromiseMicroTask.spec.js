@@ -1,60 +1,130 @@
-import {PromiseMicroTask} from '../src/PromiseMicroTask';
-import {use, inject} from 'di/testing';
+import {PromiseBackend} from '../src/PromiseBackend';
+import {PromiseMock} from '../src/PromiseMock';
 
-describe('PromiseMicroTask', function() {
-  it('should have monkey-patched Promise', inject(
-      PromiseMicroTask,
-      function(promiseMicroTask) {
-        var goodSpy = jasmine.createSpy('goodSpy');
-        var badSpy = jasmine.createSpy('badSpy');
+describe('PromiseBackend', function() {
+  afterEach(function() {
+    this.promiseBackend.restoreNative();
+  });
 
-        var p = new Promise(function(res, rej) {
-          res('resolved');
-        }).then(goodSpy);
 
-        promiseMicroTask.flush();
-        expect(goodSpy).toHaveBeenCalledWith('resolved');
-        expect(badSpy).not.toHaveBeenCalled();
-      }));
+  describe('constructor', function() {
+    it('should create an empty queue', function() {
+      this.promiseBackend = new PromiseBackend();
+      expect(this.promiseBackend.queue.length).toBe(0);
+    });
+
+
+    it('should set a custom global object if provided', function() {
+      var global = {};
+      this.promiseBackend = new PromiseBackend(global);
+      expect(this.promiseBackend.global).toBe(global);
+    });
+
+
+    it('should default to window as global if none provided', function() {
+      this.promiseBackend = new PromiseBackend();
+      expect(this.promiseBackend.global).toBe(window);
+    });
+  });
+
 
   describe('.flush()', function() {
-    it('should complain if window.__asapFlush__ is undefined', inject(
-        PromiseMicroTask,
-        function(promiseMicroTask) {
-          var asapFlush = window.__asapFlush__;
-          window.__asapFlush__ = null;
-          expect(function() {
-            promiseMicroTask.flush();
-          }).toThrow(new Error('Unable to flush MicroTask queue.'));
-          window.__asapFlush__ = asapFlush;
-          promiseMicroTask.flush();
-        }));
+    it('should execute all pending tasks', function() {
+      var taskSpy = jasmine.createSpy();
+      this.promiseBackend = new PromiseBackend();
+      this.promiseBackend.queue.push(taskSpy);
+      this.promiseBackend.queue.push(taskSpy);
+      this.promiseBackend.flush();
+      expect(taskSpy).toHaveBeenCalled();
+      expect(taskSpy.calls.count()).toBe(2);
+    });
+
+
+    it('should empty the queue', function() {
+      this.promiseBackend = new PromiseBackend();
+      this.promiseBackend.queue.push(function(){});
+      this.promiseBackend.flush();
+      expect(this.promiseBackend.queue.length).toBe(0);
+    });
+
+
+    it('should complain if the queue is empty', function() {
+      var self = this;
+      this.promiseBackend = new PromiseBackend();
+      expect(function() {
+        this.promiseBackend.flush();
+      }.bind(this)).toThrow(new Error('Nothing to flush!'));
+    });
+
+
+    it('should call each task with a null context', function() {
+      var context, args;
+      var task = function() {
+        args = arguments;
+        context = this;
+      }
+      this.promiseBackend = new PromiseBackend();
+      this.promiseBackend.queue.push(task);
+      this.promiseBackend.flush();
+      expect(context).toBe(null);
+      expect(Object.keys(args).length).toBe(0);
+    });
   });
 
-  describe('.restoreNative()', function() {
-    //TODO: Should keep Traceur Promise if browser doesn't provide Promise
-    it('should restore the original window.Promise', inject(
-        PromiseMicroTask,
-        function(promiseMicroTask) {
-          var traceurPromise = window.Promise;
-          promiseMicroTask.restoreNative();
-          expect(window.Promise).not.toBe(traceurPromise);
-          expect(window.Promise.toString()).toContain('[native code]');
-        }));
+
+  describe('.restoreOriginal()', function() {
+    it('should restore the original global Promise', function() {
+      var global = {Promise: window.Promise};
+      this.promiseBackend = new PromiseBackend(global);
+      var OriginalPromise = Promise;
+
+      expect(global.Promise).toBe(OriginalPromise);
+      expect(typeof new OriginalPromise(function(){}).then).toBe('function');
+
+      this.promiseBackend.patchWithMock();
+      expect(global.Promise).not.toBe(OriginalPromise);
+
+      this.promiseBackend.restoreNative();
+      expect(global.Promise).toBe(OriginalPromise);
+    });
   });
 
 
-  describe('.restoreTraceur()', function() {
-    it('should re-instate Traceur promise', inject(
-        PromiseMicroTask,
-        function(promiseMicroTask) {
-          promiseMicroTask.restoreNative();
-          var nativePromise = window.Promise;
-          expect(nativePromise.toString()).toContain('[native code]');
-          promiseMicroTask.restoreTraceur();
-          expect(window.Promise).not.toBe(nativePromise);
-          expect(window.Promise.toString()).not.toContain('[native code]');
-        }));
+  describe('.executeAsap()', function() {
+    it('should add a task at the end of the queue', function() {
+      this.promiseBackend = new PromiseBackend();
+      this.promiseBackend.queue.push(function(){});
+      var callme = function(){};
+      this.promiseBackend.executeAsap(callme);
+      expect(this.promiseBackend.queue.length).toBe(2);
+      expect(this.promiseBackend.queue[1]).toBe(callme);
+    });
   });
 
+
+  describe('.patchWithMock()', function() {
+    it('should monkey-patch global Promise with mock', function() {
+      var global = {Promise: window.Promise};
+      this.promiseBackend = new PromiseBackend(global);
+      var OriginalPromise = Promise;
+
+      expect(global.Promise).toBe(OriginalPromise);
+      expect(typeof new OriginalPromise(function(){}).then).toBe('function');
+
+      this.promiseBackend.patchWithMock();
+      expect(global.Promise).toBe(PromiseMock);
+    });
+  });
+
+
+  describe('.verifyNoOutstandingTasks()', function() {
+    it('should throw if the micro task queue has anything in it', function() {
+      this.promiseBackend = new PromiseBackend();
+
+      this.promiseBackend.queue.push(function(){});
+      expect(function() {
+        this.promiseBackend.verifyNoOutstandingTasks();
+      }.bind(this)).toThrow(new Error('Pending tasks to be flushed'));
+    });
+  });
 });
