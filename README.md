@@ -140,3 +140,5 @@ it('should resolve with a smiley', function() {
  * Add A+ tests for PromiseMock. This implementation is copied from Traceur
    (which is ported from V8). The Traceur implementation is already passing A+
    tests. This project should have the tests as well.
+ * Add src/index.js to export items that should be available at runtime.
+ * Add build process
