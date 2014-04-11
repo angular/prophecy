@@ -130,7 +130,7 @@ it('should resolve with a smiley', function() {
 | restoreNativePromise()     | Restore the native Promise implementation to the global object |
 | patchWithMock() | Replace the global Promise constructor with `PromiseMock` |
 | verifyNoOutstandingTasks() | Throw if tasks are in the queue waiting to flush |
-| queue:Array.<Function>     | Array of functions to be executed on next flush, populated by executeAsap() |
+| queue:Array.&lt;Function&gt;     | Array of functions to be executed on next flush, populated by executeAsap() |
 | global:Object              | The global context within which PromiseBackend is operating, default: window |
 
 [Design Doc](https://docs.google.com/a/google.com/document/d/1ksBjyCgwuiEUGn9h2NYQGtmQkP5N9HbehMBgaxMtwfs/edit#) (superceded by implementation in this project).
