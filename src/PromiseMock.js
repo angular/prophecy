@@ -23,7 +23,9 @@ export class PromiseBackend {
   }
 
   static restoreNativePromise() {
-    PromiseBackend.global.Promise = PromiseBackend.__OriginalPromise__ || PromiseBackend.global.Promise;
+    PromiseBackend.global.Promise =
+        PromiseBackend.__OriginalPromise__ ||
+        PromiseBackend.global.Promise;
   }
 
   static patchWithMock() {
@@ -32,10 +34,17 @@ export class PromiseBackend {
   }
 
   static verifyNoOutstandingTasks() {
-    if (PromiseBackend.queue.length) throw new Error('Pending tasks to be flushed');
+    if (PromiseBackend.queue.length) {
+      throw new Error('Pending tasks to be flushed');
+    }
   }
 }
 
+/*
+ * TODO (jeffbcross): this is ugly. These are hard to test since this class only
+ * gets set up once for a suite of tests. For example, it's very difficult to
+ * test that PromiseBackend.global gets set to global if window is undefined.
+ */
 PromiseBackend.global = window || global;
 PromiseBackend.__OriginalPromise__ = Promise
 PromiseBackend.queue = [];
