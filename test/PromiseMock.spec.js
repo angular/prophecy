@@ -8,21 +8,22 @@ describe('PromiseBackend', function() {
     expect(Promise).not.toBe(PromiseMock);
   });
 
-
-  it('should start with an empty queue', function() {
-    expect(PromiseBackend.queue.length).toBe(0);
-  });
-
-
-  it('should start with the native Promise registered ', function() {
-    expect(PromiseBackend.__OriginalPromise__).toBe(window.Promise);
-  });
+  describe('initialization', function() {
+    it('should start with an empty queue', function() {
+      expect(PromiseBackend.queue.length).toBe(0);
+    });
 
 
-  it('should set a custom global object if provided', function() {
-    var global = {};
-    PromiseBackend.setGlobal(global);
-    expect(PromiseBackend.global).toBe(global);
+    it('should start with the native Promise registered ', function() {
+      expect(PromiseBackend.__OriginalPromise__).toBe(window.Promise);
+    });
+
+
+    it('should set a custom global object if provided', function() {
+      var global = {};
+      PromiseBackend.setGlobal(global);
+      expect(PromiseBackend.global).toBe(global);
+    });
   });
 
 
