@@ -36,7 +36,7 @@ export class PromiseBackend {
   }
 }
 
-PromiseBackend.global = window;
+PromiseBackend.global = window || global;
 PromiseBackend.__OriginalPromise__ = Promise
 PromiseBackend.queue = [];
 
