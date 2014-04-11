@@ -30,10 +30,10 @@ describe('Deferred', function() {
     it('should call the resolver\'s resolve function with the correct value',
         function() {
           var resolveSpy = jasmine.createSpy();
-          var deferred = new Deferred(PromiseMock);
-          deferred.promise.then(null, resolveSpy);
+          var deferred = new Deferred();
+          deferred.promise.then(resolveSpy);
 
-          deferred.reject('value');
+          deferred.resolve('value');
           PromiseBackend.flush();
           expect(resolveSpy).toHaveBeenCalledWith('value');
         });

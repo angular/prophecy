@@ -7,11 +7,12 @@ export class Deferred {
   }
 
   resolve (value) {
+    //TODO (@jeffbcross): This should probably be called with a null context
     this.resolve_.call(this.promise, value);
   }
 
   reject (reason) {
+    //TODO (@jeffbcross): This should probably be called with a null context
     this.reject_.call(this.promise, reason);
   }
 }
-

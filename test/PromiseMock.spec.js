@@ -14,6 +14,11 @@ describe('PromiseBackend', function() {
   });
 
 
+  it('should start with the native Promise registered ', function() {
+    expect(PromiseBackend.__OriginalPromise__).toBe(window.Promise);
+  });
+
+
   it('should set a custom global object if provided', function() {
     var global = {};
     PromiseBackend.setGlobal(global);
