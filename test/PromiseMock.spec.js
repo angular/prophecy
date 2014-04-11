@@ -44,6 +44,7 @@ describe('PromiseBackend', function() {
 
     it('should empty the queue', function() {
       PromiseBackend.queue.push(function(){});
+      expect(PromiseBackend.queue.length).toBe(1);
       PromiseBackend.flush();
       expect(PromiseBackend.queue.length).toBe(0);
     });
