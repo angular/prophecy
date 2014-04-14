@@ -38,6 +38,18 @@ export class PromiseBackend {
       throw new Error('Pending tasks to be flushed');
     }
   }
+
+  static forkZone() {
+    return zone.fork({
+      onZoneEnter: function() {
+        PromiseBackend.patchWithMock();
+      },
+      onZoneLeave: function() {
+        PromiseBackend.restoreNativePromise();
+        PromiseBackend.verifyNoOutstandingTasks();
+      }
+    });
+  }
 }
 
 /*

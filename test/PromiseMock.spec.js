@@ -2,10 +2,7 @@ import {PromiseMock, PromiseBackend} from '../src/PromiseMock';
 
 describe('PromiseBackend', function() {
   afterEach(function() {
-    PromiseBackend.restoreNativePromise();
     PromiseBackend.setGlobal(window);
-    PromiseBackend.verifyNoOutstandingTasks();
-    expect(Promise).not.toBe(PromiseMock);
   });
 
   describe('initialization', function() {
@@ -97,6 +94,7 @@ describe('PromiseBackend', function() {
       PromiseBackend.executeAsap(callme);
       expect(PromiseBackend.queue.length).toBe(2);
       expect(PromiseBackend.queue[1]).toBe(callme);
+      PromiseBackend.flush();
     });
   });
 
@@ -122,6 +120,26 @@ describe('PromiseBackend', function() {
       expect(function() {
         PromiseBackend.verifyNoOutstandingTasks();
       }).toThrow(new Error('Pending tasks to be flushed'));
+      PromiseBackend.flush();
+    });
+  });
+
+
+  describe('.forkZone', function() {
+    it('should return a new zone', function() {
+      var zone1 = PromiseBackend.forkZone();
+      var zone2 = PromiseBackend.forkZone();
+      expect(zone1).not.toBe(zone2);
+    });
+
+
+    it('should automatically patch and unpatch window.Promise', function() {
+      var winPromise = window.Promise;
+      PromiseBackend.forkZone()
+        .run(function() {
+          expect(Promise).not.toBe(winPromise);
+        });
+      expect(Promise).toBe(winPromise);
     });
   });
 });

@@ -120,18 +120,41 @@ it('should resolve with a smiley', function() {
 });
 ```
 
+The PromiseBackend also provides a convenience method to create a zone within
+which tests can be executed, which will automatically patch and unpatch
+`window.Promise`. The zone will also verify that no outstanding requests are
+waiting to be flushed.
+```javascript
+beforeEach(function() {
+  //No need for PromiseBackend.patchWithMock(), or an afterEach() to unpatch
+  this.zone = PromiseBackend.forkZone();
+});
+it('should resolve with a smiley', function() {
+  this.zone.run(function() {
+    var resolveSpy = jasmine.createSpy();
+    new Promise(function(resolve) {
+      resolve(':)');
+    }).
+    then(resolveSpy);
+    PromiseBackend.flush();
+    expect(resolveSpy).toHaveBeenCalledWith(':)');
+  });
+})
+```
+
 ####  `PromiseBackend` Static Methods and Properties
 
-| name                       | description |
-| -------------------------- | ----------- |
-| setGlobal(global:Object)   | global context to which the native implementation of `Promise` is attached (default: window) |
-| flush()                    | Flushes all tasks that have been queued for execution |
-| executeAsap(fn:Function)   | Add a function to the queue to be executed on the next flush |
-| restoreNativePromise()     | Restore the native Promise implementation to the global object |
+| name                         | description |
+| ---------------------------- | ----------- |
+| setGlobal(global:Object)     | global context to which the native implementation of `Promise` is attached (default: window) |
+| flush()                      | Flushes all tasks that have been queued for execution |
+| executeAsap(fn:Function)     | Add a function to the queue to be executed on the next flush |
+| restoreNativePromise()       | Restore the native Promise implementation to the global object |
 | patchWithMock() | Replace the global Promise constructor with `PromiseMock` |
-| verifyNoOutstandingTasks() | Throw if tasks are in the queue waiting to flush |
-| queue:Array.&lt;Function&gt;     | Array of functions to be executed on next flush, populated by executeAsap() |
-| global:Object              | The global context within which PromiseBackend is operating, default: window |
+| verifyNoOutstandingTasks()   | Throw if tasks are in the queue waiting to flush |
+| zone:forkZone()              | Creates and returns a new zone which automatically patches `window.Promise` with the MockPromise before execution, and restores the original promise after execution. |
+| queue:Array.&lt;Function&gt; | Array of functions to be executed on next flush, populated by executeAsap() |
+| global:Object                | The global context within which PromiseBackend is operating, default: window |
 
 [Design Doc](https://docs.google.com/a/google.com/document/d/1ksBjyCgwuiEUGn9h2NYQGtmQkP5N9HbehMBgaxMtwfs/edit#) (superceded by implementation in this project).
 
@@ -143,8 +166,5 @@ it('should resolve with a smiley', function() {
  * Refactor to make PromiseBackend a singleton that gets instantiated (i.e. all
    tasks should share one queue). This will improve testability, so that
    properties aren't set on the constructor when initialized.
- * Add built-in zone support for PromiseBackend, to create a zone which will
-   automatically patch/unpatch window with the mock before and after the zone
-   runs.
  * Add src/index.js to export items that should be available at runtime.
  * Add build process

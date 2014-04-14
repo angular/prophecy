@@ -4,7 +4,8 @@
   "description": "Angular 2 Promises.",
   "homepage": "https://github.com/angular/deferred",
   "dependencies": {
-    "es6-shim": "~0.10.1"
+    "es6-shim": "~0.10.1",
+    "zone.js": "git://github.com/angular/zone.js"
   },
   "devDependencies": {
     "pipe": "angular/pipe",
