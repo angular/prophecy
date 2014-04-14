@@ -140,5 +140,11 @@ it('should resolve with a smiley', function() {
  * Add A+ tests for PromiseMock. This implementation is copied from Traceur
    (which is ported from V8). The Traceur implementation is already passing A+
    tests. This project should have the tests as well.
+ * Refactor to make PromiseBackend a singleton that gets instantiated (i.e. all
+   tasks should share one queue). This will improve testability, so that
+   properties aren't set on the constructor when initialized.
+ * Add built-in zone support for PromiseBackend, to create a zone which will
+   automatically patch/unpatch window with the mock before and after the zone
+   runs.
  * Add src/index.js to export items that should be available at runtime.
  * Add build process
