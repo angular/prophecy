@@ -129,6 +129,13 @@ describe('PromiseBackend', function() {
           backend.flush(true);
           expect(PromiseBackend.queue.length).toBe(0);
         });
+
+
+    it('should return the backend instance for chaining', function() {
+      var backend = new PromiseBackend();
+      PromiseBackend.executeAsap(function() {});
+      expect(backend.flush()).toBe(backend);
+    });
   });
 
 
@@ -161,13 +168,13 @@ describe('PromiseBackend', function() {
 
 
     it('should add a task at the end of the queue', function() {
-      var backend = new PromiseBackend();
-      PromiseBackend.queue.push(function(){});
-      var callme = function(){};
-      PromiseBackend.executeAsap(callme);
+      var spy1 = jasmine.createSpy();
+      var spy2 = jasmine.createSpy();
+      PromiseBackend.executeAsap(spy1);
+      PromiseBackend.executeAsap(spy2);
       expect(PromiseBackend.queue.length).toBe(2);
-      expect(PromiseBackend.queue[1]).toBe(callme);
-      backend.flush();
+      expect(PromiseBackend.queue[1]).toBe(spy2);
+      new PromiseBackend().flush().verifyNoOutstandingTasks();
     });
   });
 

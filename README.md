@@ -153,11 +153,12 @@ beforeEach(function() {
 it('should resolve with a smiley', function() {
   this.zone.run(function() {
     var resolveSpy = jasmine.createSpy();
+    var backend = new PromiseBackend();
     new Promise(function(resolve) {
       resolve(':)');
     }).
     then(resolveSpy);
-    PromiseBackend.flush();
+    backend.flush();
     expect(resolveSpy).toHaveBeenCalledWith(':)');
   });
 })
@@ -168,7 +169,7 @@ it('should resolve with a smiley', function() {
 | name                         | description |
 | ---------------------------- | ----------- |
 | setGlobal(global:Object)     | global context to which the native implementation of `Promise` is attached (default: window) |
-| flush(recursiveFlush=false)  | Flushes all tasks that have been queued for execution. If recursiveFlush is true, the backend will continue flushing until the queue is empty, including tasks that have been added since flushing began. |
+| flush(recursiveFlush=false)  | Flushes all tasks that have been queued for execution. If recursiveFlush is true, the backend will continue flushing until the queue is empty, including tasks that have been added since flushing began. Returns the `PromiseBackend` instance to allow chaining. |
 | static executeAsap(fn:Function)     | Add a function to the queue to be executed on the next flush |
 | restoreNativePromise()       | Restore the native Promise implementation to the global object |
 | patchWithMock() | Replace the global Promise constructor with `PromiseMock` |

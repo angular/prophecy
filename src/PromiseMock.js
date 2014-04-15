@@ -26,6 +26,8 @@ export class PromiseBackend {
         task.call(null);
       }
     }
+
+    return this;
   }
 
   static executeAsap(fn) {
