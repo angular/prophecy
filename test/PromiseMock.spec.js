@@ -151,6 +151,15 @@ describe('PromiseBackend', function() {
 
 
   describe('.executeAsap()', function() {
+    it('should create a queue if one does not yet exist', function() {
+      expect(PromiseBackend.queue).toBeUndefined();
+      PromiseBackend.executeAsap(function() {});
+      expect(PromiseBackend.queue).toBeDefined()
+      expect(PromiseBackend.queue.length).toBe(1);
+      new PromiseBackend().flush();
+    });
+
+
     it('should add a task at the end of the queue', function() {
       var backend = new PromiseBackend();
       PromiseBackend.queue.push(function(){});

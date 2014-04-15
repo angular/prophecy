@@ -29,6 +29,7 @@ export class PromiseBackend {
   }
 
   static executeAsap(fn) {
+    PromiseBackend.queue = PromiseBackend.queue || [];
     PromiseBackend.queue.push(fn);
   }
 
