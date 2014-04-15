@@ -1,20 +1,30 @@
 export class PromiseBackend {
-  constructor () {
+  constructor (globalObject = window) {
+    PromiseBackend.queue = PromiseBackend.queue || [];
+    this.global = globalObject;
+    this.__OriginalPromise__ = Promise;
   }
 
-  static setGlobal(global) {
-    PromiseBackend.queue = [];
-    PromiseBackend.global = global || window;
+  setGlobal(globalObject = window) {
+    this.global = globalObject;
   }
 
-  static flush() {
+  flush(recursiveFlush = false) {
     var i = PromiseBackend.queue.length, task;
     if (!i) {
       throw new Error('Nothing to flush!');
     }
-    while (i--) {
-      task = PromiseBackend.queue.shift();
-      task.call(null);
+    if (!recursiveFlush) {
+      while (i--) {
+        task = PromiseBackend.queue.shift();
+        task.call(null);
+      }
+    }
+    else {
+      while(PromiseBackend.queue.length) {
+        task = PromiseBackend.queue.shift();
+        task.call(null);
+      }
     }
   }
 
@@ -22,45 +32,41 @@ export class PromiseBackend {
     PromiseBackend.queue.push(fn);
   }
 
-  static restoreNativePromise() {
-    PromiseBackend.global.Promise =
-        PromiseBackend.__OriginalPromise__ ||
-        PromiseBackend.global.Promise;
+  restoreNativePromise() {
+    this.global.Promise =
+        this.__OriginalPromise__ ||
+        this.global.Promise;
   }
 
-  static patchWithMock() {
-    PromiseBackend.__OriginalPromise__ = PromiseBackend.global.Promise;
-    PromiseBackend.global.Promise = PromiseMock;
+  patchWithMock() {
+    this.__OriginalPromise__ = this.global.Promise;
+    this.global.Promise = PromiseMock;
   }
 
-  static verifyNoOutstandingTasks() {
+  verifyNoOutstandingTasks() {
     if (PromiseBackend.queue.length) {
       throw new Error('Pending tasks to be flushed');
     }
   }
 
-  static forkZone() {
+  forkZone() {
+    var backend = this;
     return zone.fork({
       onZoneEnter: function() {
-        PromiseBackend.patchWithMock();
+        backend.patchWithMock();
       },
       onZoneLeave: function() {
-        PromiseBackend.restoreNativePromise();
-        PromiseBackend.verifyNoOutstandingTasks();
+        backend.restoreNativePromise();
+        backend.verifyNoOutstandingTasks();
+        PromiseBackend.queue = undefined;
+      },
+      onError: function (e) {
+        console.log('error!', e);
+        throw new Error(e);
       }
     });
   }
 }
-
-/*
- * TODO (jeffbcross): this is ugly. These are hard to test since this class only
- * gets set up once for a suite of tests. For example, it's very difficult to
- * test that PromiseBackend.global gets set to global if window is undefined.
- */
-PromiseBackend.global = window || global;
-PromiseBackend.__OriginalPromise__ = Promise
-PromiseBackend.queue = [];
-
 
 var promiseRaw = {};
 
@@ -77,6 +83,7 @@ export class PromiseMock {
     } catch (e) {
       promiseReject(promise, e);
     }
+    this.backend = new PromiseBackend();
   }
 
   catch(onReject) {

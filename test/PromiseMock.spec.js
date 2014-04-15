@@ -2,70 +2,133 @@ import {PromiseMock, PromiseBackend} from '../src/PromiseMock';
 
 describe('PromiseBackend', function() {
   afterEach(function() {
-    PromiseBackend.setGlobal(window);
+    delete PromiseBackend.queue;
   });
 
-  describe('initialization', function() {
-    it('should start with an empty queue', function() {
+
+  describe('constructor', function() {
+    afterEach(function() {
+      PromiseBackend.instance = undefined;
+    });
+
+
+    it('should create an empty queue on class', function() {
+      var backend = new PromiseBackend();
       expect(PromiseBackend.queue.length).toBe(0);
     });
 
 
+    it('should return a new instance each time', function() {
+      expect(PromiseBackend.instance).toBeUndefined();
+      var backend = new PromiseBackend();
+      var backend2 = new PromiseBackend();
+      expect(backend).not.toBe(backend2);
+    });
+
+
+    it('should not interfere with an existing shared queue', function() {
+      new PromiseBackend();
+      expect(PromiseBackend.queue.length).toBe(0);
+      PromiseBackend.queue.push('foo');
+      new PromiseBackend();
+      expect(PromiseBackend.queue).toEqual(['foo']);
+    });
+
+
     it('should start with the native Promise registered ', function() {
-      expect(PromiseBackend.__OriginalPromise__).toBe(window.Promise);
+      var backend = new PromiseBackend();
+      expect(backend.__OriginalPromise__).toBe(window.Promise);
     });
 
 
     it('should set a custom global object if provided', function() {
       var global = {};
-      PromiseBackend.setGlobal(global);
-      expect(PromiseBackend.global).toBe(global);
+      var backend = new PromiseBackend();
+      backend.setGlobal(global);
+      expect(backend.global).toBe(global);
     });
   });
 
 
   it('should default to window as global if none provided', function() {
-    expect(PromiseBackend.global).toBe(window);
+    var backend = new PromiseBackend();
+    expect(backend.global).toBe(window);
+  });
+
+
+  it('should default to "global" object if window is undefined', function() {
+    var global = {};
+    var backend = new PromiseBackend(global);
+    expect(backend.global).toBe(global);
   });
 
 
   describe('.flush()', function() {
     it('should execute all pending tasks', function() {
       var taskSpy = jasmine.createSpy();
+      var backend = new PromiseBackend();
       PromiseBackend.queue.push(taskSpy);
       PromiseBackend.queue.push(taskSpy);
-      PromiseBackend.flush();
+      backend.flush();
       expect(taskSpy).toHaveBeenCalled();
       expect(taskSpy.calls.count()).toBe(2);
     });
 
 
     it('should empty the queue', function() {
+      var backend = new PromiseBackend();
       PromiseBackend.queue.push(function(){});
       expect(PromiseBackend.queue.length).toBe(1);
-      PromiseBackend.flush();
+      backend.flush();
       expect(PromiseBackend.queue.length).toBe(0);
     });
 
 
     it('should complain if the queue is empty', function() {
       expect(function() {
-        PromiseBackend.flush();
+        var backend = new PromiseBackend();
+        backend.flush();
       }).toThrow(new Error('Nothing to flush!'));
     });
 
 
     it('should call each task with a null context', function() {
       var context, args;
+      var backend = new PromiseBackend();
       var task = function() {
         args = arguments;
         context = this;
       }
       PromiseBackend.queue.push(task);
-      PromiseBackend.flush();
+      backend.flush();
       expect(context).toBe(null);
       expect(Object.keys(args).length).toBe(0);
     });
+
+
+    it('should not flush tasks that were added to the queue by other tasks',
+        function() {
+          var backend = new PromiseBackend();
+          var tardySpy = jasmine.createSpy('tardy');
+          PromiseBackend.queue.push(function() {
+            PromiseBackend.queue.push(tardySpy);
+          });
+          backend.flush();
+          expect(PromiseBackend.queue.length).toBe(1);
+          backend.flush();
+        });
+
+
+    it('should flush tasks that were added to the queue by other tasks if passed "true"',
+        function() {
+          var backend = new PromiseBackend();
+          var tardySpy = jasmine.createSpy('tardy');
+          PromiseBackend.queue.push(function() {
+            PromiseBackend.queue.push(tardySpy);
+          });
+          backend.flush(true);
+          expect(PromiseBackend.queue.length).toBe(0);
+        });
   });
 
 
@@ -73,15 +136,15 @@ describe('PromiseBackend', function() {
     it('should restore the original global Promise', function() {
       var global = {Promise: window.Promise};
       var OriginalPromise = Promise;
-
-      PromiseBackend.setGlobal(global);
+      var backend = new PromiseBackend();
+      backend.setGlobal(global);
       expect(global.Promise).toBe(OriginalPromise);
       expect(typeof new OriginalPromise(function(){}).then).toBe('function');
 
-      PromiseBackend.patchWithMock();
+      backend.patchWithMock();
       expect(global.Promise).not.toBe(OriginalPromise);
 
-      PromiseBackend.restoreNativePromise();
+      backend.restoreNativePromise();
       expect(global.Promise).toBe(OriginalPromise);
     });
   });
@@ -89,12 +152,13 @@ describe('PromiseBackend', function() {
 
   describe('.executeAsap()', function() {
     it('should add a task at the end of the queue', function() {
+      var backend = new PromiseBackend();
       PromiseBackend.queue.push(function(){});
       var callme = function(){};
       PromiseBackend.executeAsap(callme);
       expect(PromiseBackend.queue.length).toBe(2);
       expect(PromiseBackend.queue[1]).toBe(callme);
-      PromiseBackend.flush();
+      backend.flush();
     });
   });
 
@@ -103,12 +167,12 @@ describe('PromiseBackend', function() {
     it('should monkey-patch global Promise with mock', function() {
       var global = {Promise: window.Promise};
       var OriginalPromise = Promise;
+      var backend = new PromiseBackend(global);
 
-      PromiseBackend.setGlobal(global);
       expect(global.Promise).toBe(OriginalPromise);
       expect(typeof new OriginalPromise(function(){}).then).toBe('function');
 
-      PromiseBackend.patchWithMock();
+      backend.patchWithMock();
       expect(global.Promise).toBe(PromiseMock);
     });
   });
@@ -116,26 +180,29 @@ describe('PromiseBackend', function() {
 
   describe('.verifyNoOutstandingTasks()', function() {
     it('should throw if the micro task queue has anything in it', function() {
+      var backend = new PromiseBackend();
       PromiseBackend.queue.push(function(){});
       expect(function() {
-        PromiseBackend.verifyNoOutstandingTasks();
+        backend.verifyNoOutstandingTasks();
       }).toThrow(new Error('Pending tasks to be flushed'));
-      PromiseBackend.flush();
+      backend.flush();
     });
   });
 
 
   describe('.forkZone', function() {
     it('should return a new zone', function() {
-      var zone1 = PromiseBackend.forkZone();
-      var zone2 = PromiseBackend.forkZone();
+      var backend = new PromiseBackend();
+      var zone1 = backend.forkZone();
+      var zone2 = backend.forkZone();
       expect(zone1).not.toBe(zone2);
     });
 
 
     it('should automatically patch and unpatch window.Promise', function() {
       var winPromise = window.Promise;
-      PromiseBackend.forkZone()
+      var backend = new PromiseBackend();
+      backend.forkZone()
         .run(function() {
           expect(Promise).not.toBe(winPromise);
         });
@@ -158,10 +225,11 @@ describe('PromiseMock', function() {
 
   it('should allow synchronous flushing', function() {
     var goodSpy = jasmine.createSpy();
+    var backend = new PromiseBackend();
     new PromiseMock(function(res, rej) {
       res('success!');
     }).then(goodSpy);
-    PromiseBackend.flush();
+    backend.flush();
     expect(goodSpy).toHaveBeenCalledWith('success!');
   });
 });

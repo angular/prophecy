@@ -3,7 +3,7 @@
 ## Status: In-Development
 
 This project makes available an ES6 `Deferred` implementation, using
-[ES6 `Promise`](https://github.com/domenic/promises-unwrapping).
+[ES6 `Promises`](https://github.com/domenic/promises-unwrapping).
 Also included is a utility mock implementation of `Promise` with a corresponding
 `PromiseBackend` which allows flushing of the `Promise`'s underlying microtask
 queue, allowing developers to write synchronous tests against Promise-based
@@ -29,10 +29,10 @@ var promise = new Promise(function(resolve, reject) {
 promise.then(function(val) {
   console.log(val);
 });
-//Logs "done" to the console in 1 secondn
+//Logs "done" to the console in 1 second
 ```
 
-Example with `Deferred`:
+Example with `Deferred` without using PromiseMock:
 ```javascript
 import {Deferred} from './node_modules/deferred/src/Deferred';
 var deferred = new Deferred();
@@ -57,9 +57,9 @@ setTimeout(function() {
 
 The `PromiseMock` module contains two classes that allow synchronous testing of
 promise-based APIs. The `PromiseBackend` class provides methods to register and
-unregister the `MockPromise` class as the global `Promise` constructor, as well
+unregister the `PromiseMock` class as the global `Promise` constructor, as well
 as methods to flush the queue of pending operations registered by the
-`MockPromise`. The `MockPromise` implementation is exactly the same as the
+`PromiseMock`. The `PromiseMock` implementation is exactly the same as the
 native/Traceur ES6 `Promise`, except that it adds its pending tasks to the
 flushable `PromiseBackend` queue instead of a hidden microtask queue.
 
@@ -67,27 +67,44 @@ Example test of `Deferred` using `PromiseBackend`:
 ```javascript
 import {PromiseBackend} from './node_modules/deferred/src/PromiseMock';
 import {Deferred} from './node_modules/deferred/src/Deferred';
-...
-it('should call the resolver\'s resolve function with the correct value', function() {
-  //Replace window.Promise with MockPromise constructor
-  PromiseBackend.patchWithMock();
-  var resolveSpy = jasmine.createSpy();
-  var deferred = new Deferred();
-  deferred.promise.then(resolveSpy);
-  deferred.resolve('Flush me!');
-  PromiseBackend.flush();
-  expect(resolveSpy).toHaveBeenCalledWith('Flush me!');
-  //Restore window.Promise with the native Promise implementation
-  PromiseBackend.restoreNativePromise();
+describe('.resolve()', function() {
+  it('should call the resolver\'s resolve function with the correct value',
+    function() {
+      var backend = new PromiseBackend();
+      var resolveSpy = jasmine.createSpy('resolveSpy');
+      backend.forkZone().run(function() {
+        var deferred = new Deferred();
+        deferred.promise.then(resolveSpy);
+        deferred.resolve('Flush me!');
+        backend.flush(true);
+      });
+
+      expect(resolveSpy).toHaveBeenCalledWith('Flush me!');
+  });
 });
-...
 ```
 
 ### `PromiseBackend`
 
-The `PromiseBackend` class is completely static (no instance methods or
-properties), and manages the process of patching the global object with
-`MockPromise` as well as flushing any pending promise fulfillment operations.
+The `PromiseBackend` class is partially static but requires instantiation. This
+class manages the process of patching the global object with
+`PromiseMock` as well as flushing any pending promise fulfillment operations.
+The PromiseBackend keeps a singleton queue of pending tasks, which is shared
+by all instances of `PromiseBackend`.
+
+One convenience that `PromiseBackend` provides is a factory to create a zone
+that will automatically patch and unpatch `window` with `PromiseMock`, as well
+as verify that there are no outstanding tasks to be executed in the queue.
+
+```javascript
+var backend = new PromiseBackend();
+backend.forkZone().run(function() {
+  console.log(Promise.toString()) //function PromiseMock(){...}
+});
+```
+
+The `PromiseBackend` can be instantiated manually, or injected using
+[Angular 2.0 Dependency Injection](https://github.com/angular/di).
 
 The `flush` method is called in lieu of waiting for the next VM turn, and
 prevents the need for writing async tests using `setTimeout`. Example writing
@@ -106,16 +123,20 @@ it('should resolve with a smiley', function(done) {
 });
 ```
 
-With `MockPromise` and `PromiseBackend.flush()`, this same test can be expressed
+With `PromiseMock` and `PromiseBackend.flush()`, this same test can be expressed
 as:
 ```javascript
 it('should resolve with a smiley', function() {
+  var backend = new PromiseBackend();
   var resolveSpy = jasmine.createSpy();
-  new Promise(function(resolve) {
-    resolve(':)');
-  }).
-  then(resolveSpy);
-  PromiseBackend.flush();
+  backend.run(function() {
+    new Promise(function(resolve) {
+      resolve(':)');
+    }).
+    then(resolveSpy);
+    backend.flush(true);
+  });
+
   expect(resolveSpy).toHaveBeenCalledWith(':)');
 });
 ```
@@ -142,19 +163,19 @@ it('should resolve with a smiley', function() {
 })
 ```
 
-####  `PromiseBackend` Static Methods and Properties
+####  `PromiseBackend` Methods and Properties
 
 | name                         | description |
 | ---------------------------- | ----------- |
 | setGlobal(global:Object)     | global context to which the native implementation of `Promise` is attached (default: window) |
-| flush()                      | Flushes all tasks that have been queued for execution |
-| executeAsap(fn:Function)     | Add a function to the queue to be executed on the next flush |
+| flush(recursiveFlush=false)  | Flushes all tasks that have been queued for execution. If recursiveFlush is true, the backend will continue flushing until the queue is empty, including tasks that have been added since flushing began. |
+| static executeAsap(fn:Function)     | Add a function to the queue to be executed on the next flush |
 | restoreNativePromise()       | Restore the native Promise implementation to the global object |
 | patchWithMock() | Replace the global Promise constructor with `PromiseMock` |
 | verifyNoOutstandingTasks()   | Throw if tasks are in the queue waiting to flush |
-| zone:forkZone()              | Creates and returns a new zone which automatically patches `window.Promise` with the MockPromise before execution, and restores the original promise after execution. |
-| queue:Array.&lt;Function&gt; | Array of functions to be executed on next flush, populated by executeAsap() |
-| global:Object                | The global context within which PromiseBackend is operating, default: window |
+| zone:forkZone()              | Creates and returns a new zone which automatically patches `window.Promise` with the PromiseMock before execution, and restores the original promise after execution. |
+| static queue:Array.&lt;Function&gt; | Array of functions to be executed on next flush, populated by `executeAsap()`. Note that this is undefined until an instance of `PromiseBackend` is created. |
+| global:Object                | The global context within which `PromiseBackend` is operating, default: window |
 
 [Design Doc](https://docs.google.com/a/google.com/document/d/1ksBjyCgwuiEUGn9h2NYQGtmQkP5N9HbehMBgaxMtwfs/edit#) (superceded by implementation in this project).
 
@@ -163,8 +184,5 @@ it('should resolve with a smiley', function() {
  * Add A+ tests for PromiseMock. This implementation is copied from Traceur
    (which is ported from V8). The Traceur implementation is already passing A+
    tests. This project should have the tests as well.
- * Refactor to make PromiseBackend a singleton that gets instantiated (i.e. all
-   tasks should share one queue). This will improve testability, so that
-   properties aren't set on the constructor when initialized.
  * Add src/index.js to export items that should be available at runtime.
  * Add build process
