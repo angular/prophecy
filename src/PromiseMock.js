@@ -1,15 +1,9 @@
 export class PromiseBackend {
-  constructor (globalObject = window) {
-    PromiseBackend.queue = PromiseBackend.queue || [];
-    this.global = globalObject;
-    this.__OriginalPromise__ = Promise;
+  static setGlobal(globalObject = window) {
+    PromiseBackend.global = globalObject;
   }
 
-  setGlobal(globalObject = window) {
-    this.global = globalObject;
-  }
-
-  flush(recursiveFlush = false) {
+  static flush(recursiveFlush = false) {
     var i = PromiseBackend.queue.length, task;
     if (!i) {
       throw new Error('Nothing to flush!');
@@ -27,7 +21,7 @@ export class PromiseBackend {
       }
     }
 
-    return this;
+    return PromiseBackend;
   }
 
   static executeAsap(fn) {
@@ -35,32 +29,34 @@ export class PromiseBackend {
     PromiseBackend.queue.push(fn);
   }
 
-  restoreNativePromise() {
-    this.global.Promise =
-        this.__OriginalPromise__ ||
-        this.global.Promise;
+  static restoreNativePromise() {
+    if (!PromiseBackend.__OriginalPromise__) {
+      throw new ReferenceError('__OriginalPromise__ is not set. restoreNativePromise should only be called after calling "patchWithMock()"')
+    }
+    PromiseBackend.global.Promise = PromiseBackend.__OriginalPromise__;
   }
 
-  patchWithMock() {
-    this.__OriginalPromise__ = this.global.Promise;
-    this.global.Promise = PromiseMock;
+  static patchWithMock() {
+    PromiseBackend.global = PromiseBackend.global ||
+        (typeof window !== 'undefined' ? window : global);
+    PromiseBackend.__OriginalPromise__ = PromiseBackend.global.Promise;
+    PromiseBackend.global.Promise = PromiseMock;
   }
 
-  verifyNoOutstandingTasks() {
-    if (PromiseBackend.queue.length) {
+  static verifyNoOutstandingTasks() {
+    if (PromiseBackend.queue && PromiseBackend.queue.length) {
       throw new Error('Pending tasks to be flushed');
     }
   }
 
-  forkZone() {
-    var backend = this;
+  static forkZone() {
     return zone.fork({
       onZoneEnter: function() {
-        backend.patchWithMock();
+        PromiseBackend.patchWithMock();
       },
       onZoneLeave: function() {
-        backend.restoreNativePromise();
-        backend.verifyNoOutstandingTasks();
+        PromiseBackend.restoreNativePromise();
+        PromiseBackend.verifyNoOutstandingTasks();
         PromiseBackend.queue = undefined;
       },
       onError: function (e) {

@@ -5,8 +5,7 @@ describe('Deferred', function() {
   var RealPromise = Promise;
 
   beforeEach(function() {
-    this.backend = new PromiseBackend();
-    this.zone = this.backend.forkZone();
+    this.zone = PromiseBackend.forkZone();
   });
 
   afterEach(function() {
@@ -28,10 +27,10 @@ describe('Deferred', function() {
     });
   });
 
+
   describe('.resolve()', function() {
     it('should call the resolver\'s resolve function with the correct value',
         function() {
-          var backend = this.backend;
           var resolveSpy = jasmine.createSpy();
           this.zone.run(function() {
             var deferred = new Deferred();
@@ -39,7 +38,7 @@ describe('Deferred', function() {
             deferred.resolve('value');
 
             //Flush once for the resolve, then once for each item in the chain
-            backend.flush(true);
+            PromiseBackend.flush(true);
             expect(resolveSpy).toHaveBeenCalledWith('value');
           });
         });
@@ -50,13 +49,12 @@ describe('Deferred', function() {
     it('should call the resolver\'s reject function with the correct value',
         function() {
           var rejectSpy = jasmine.createSpy();
-          var backend = this.backend;
           this.zone.run(function() {
             var deferred = new Deferred();
             deferred.promise.then(null, rejectSpy);
 
             deferred.reject('reason');
-            backend.flush(true);
+            PromiseBackend.flush(true);
           });
           expect(rejectSpy).toHaveBeenCalledWith('reason');
         });
