@@ -1,14 +1,14 @@
 {
-  "name": "Deferred",
-  "version": "2.0.0",
-  "description": "Angular 2 Promises.",
+  "name": "deferred",
+  "version": "0.0.3",
+  "description": "Angular 2 Promises",
   "homepage": "https://github.com/angular/deferred",
   "dependencies": {
-    "es6-shim": "~0.10.1",
-    "zone.js": "git://github.com/angular/zone.js"
+    "es6-shim": "~0.10.1"
   },
   "devDependencies": {
     "pipe": "angular/pipe",
+    "zone.js": "git://github.com/angular/zone.js",
     "requirejs": "2.1.10",
     "through2": "~0.4.1",
     "promises-aplus-tests": "~2.0.4",
