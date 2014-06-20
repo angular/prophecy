@@ -4,7 +4,7 @@ export class PromiseBackend {
   }
 
   static flush(recursiveFlush = false) {
-    var i = PromiseBackend.queue.length, task;
+    var i = (PromiseBackend.queue && PromiseBackend.queue.length), task;
     if (!i) {
       throw new Error('Nothing to flush!');
     }

@@ -38,6 +38,14 @@ describe('PromiseBackend', function() {
     });
 
 
+    it('should complain if the queue was never created', function() {
+      PromiseBackend.queue = undefined;
+      expect(function() {
+        PromiseBackend.flush();
+      }).toThrow(new Error('Nothing to flush!'));
+    });
+
+
     it('should call each task with a null context', function() {
       var context, args;
       var task = function() {
