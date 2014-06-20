@@ -51,10 +51,10 @@ export class PromiseBackend {
 
   static forkZone() {
     return zone.fork({
-      onZoneEnter: function() {
+      beforeTask: function() {
         PromiseBackend.patchWithMock();
       },
-      onZoneLeave: function() {
+      afterTask: function() {
         PromiseBackend.restoreNativePromise();
         PromiseBackend.verifyNoOutstandingTasks();
         PromiseBackend.queue = undefined;
