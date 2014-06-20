@@ -1,9 +1,9 @@
 export class Deferred {
   constructor () {
-    this.promise = new Promise(function(resolve, reject) {
+    this.promise = new Promise((resolve, reject) => {
       this.resolve_ = resolve;
       this.reject_ = reject;
-    }.bind(this));
+    });
   }
 
   resolve (value) {
