@@ -1,8 +1,8 @@
 {
-  "name": "deferred",
+  "name": "prophecy",
   "version": "0.0.3",
   "description": "Angular 2 Promises",
-  "homepage": "https://github.com/angular/deferred",
+  "homepage": "https://github.com/angular/prophecy",
   "dependencies": {
     "es6-shim": "~0.10.1"
   },

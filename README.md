@@ -1,4 +1,4 @@
-# Angular 2.0 Deferred/Promise
+# Prophecy – Angular 2.0 Deferred/Promise
 
 ## Status: In-Development
 
@@ -11,7 +11,7 @@ libraries.
 
 ## Install
 
-`$ npm install --save angular/deferred`
+`$ npm install --save angular/prophecy`
 
 ## Deferred
 
@@ -34,7 +34,7 @@ promise.then(function(val) {
 
 Example with `Deferred` without using PromiseMock:
 ```javascript
-import {Deferred} from './node_modules/deferred/src/Deferred';
+import {Deferred} from './node_modules/prophecy/src/Deferred';
 var deferred = new Deferred();
 deferred.promise.then(function(val) {
   console.log(val);
@@ -65,8 +65,8 @@ flushable `PromiseBackend` queue instead of a hidden microtask queue.
 
 Example test of `Deferred` using `PromiseBackend`:
 ```javascript
-import {PromiseBackend} from './node_modules/deferred/src/PromiseMock';
-import {Deferred} from './node_modules/deferred/src/Deferred';
+import {PromiseBackend} from './node_modules/prophecy/src/PromiseMock';
+import {Deferred} from './node_modules/prophecy/src/Deferred';
 describe('.resolve()', function() {
   it('should call the resolver\'s resolve function with the correct value',
     function() {
